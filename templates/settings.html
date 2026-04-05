@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrendRadar Settings</title>
+    <link rel="stylesheet" href="/static/dashboard.css" />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav card nav-card">
+        <a class="nav-link" href="/dashboard">新闻</a>
+        <a class="nav-link" href="/overview">总览</a>
+        <a class="nav-link active" href="/settings">配置</a>
+        <a class="nav-link subtle-link" href="/docs" target="_blank" rel="noreferrer">API Docs</a>
+      </nav>
+
+      <header class="hero card">
+        <div>
+          <p class="eyebrow">TrendRadar Settings</p>
+          <h1>配置台</h1>
+          <p class="subtle">这里专门做配置修改：平台、关键词、调度、RSS、通知，以及手动触发抓取。</p>
+        </div>
+        <div class="hero-meta compact-meta">
+          <div><span>调度</span><strong>{{ '开启' if config_summary.schedule.enabled else '关闭' }}</strong></div>
+          <div><span>RSS</span><strong>{{ '开启' if config_summary.rss_enabled else '关闭' }}</strong></div>
+          <div><span>通知</span><strong>{{ '开启' if config_summary.notification_enabled else '关闭' }}</strong></div>
+        </div>
+      </header>
+
+      <section class="config-grid single-config-grid">
+        <article class="card config-card">
+          <div class="section-title"><h2>运行开关</h2><span>RSS / 通知 / 调度</span></div>
+          <div class="toggle-list">
+            <label class="toggle-item"><span>调度开关</span><input id="schedule-enabled" type="checkbox" {% if config_summary.schedule.enabled %}checked{% endif %} /></label>
+            <label class="toggle-item"><span>RSS 开关</span><input id="rss-enabled" type="checkbox" {% if config_summary.rss_enabled %}checked{% endif %} /></label>
+            <label class="toggle-item"><span>通知开关</span><input id="notification-enabled" type="checkbox" {% if config_summary.notification_enabled %}checked{% endif %} /></label>
+          </div>
+          <div class="button-row">
+            <button class="primary" id="save-toggles">保存开关</button>
+            <button id="run-once">立即抓取一次</button>
+          </div>
+        </article>
+
+        <article class="card config-card">
+          <div class="section-title"><h2>平台配置</h2><span>勾选后直接保存</span></div>
+          <div class="checkbox-grid">
+            {% for source in platforms_config.all_supported_sources %}
+            <label class="check-item">
+              <input type="checkbox" class="platform-check" value="{{ source.id }}" {% if source.id in (platforms_config.sources | map(attribute='id') | list) %}checked{% endif %} />
+              <span>{{ source.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="button-row"><button class="primary" id="save-platforms">保存平台配置</button></div>
+        </article>
+      </section>
+
+      <section class="card config-card full-width">
+        <div class="section-title"><h2>关键词配置</h2><span>直接编辑 frequency_words.txt 内容</span></div>
+        <textarea id="keywords-content" class="keywords-editor">{{ keywords_config.raw }}</textarea>
+        <div class="button-row"><button class="primary" id="save-keywords">保存关键词</button></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast hidden"></div>
+    <script>
+      const toast = document.getElementById('toast');
+      function showToast(message, ok = true) {
+        toast.textContent = message;
+        toast.className = `toast ${ok ? 'ok' : 'bad'}`;
+        setTimeout(() => { toast.className = 'toast hidden'; }, 2400);
+      }
+      async function postJson(url, payload) {
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+        return data;
+      }
+      document.getElementById('save-platforms').addEventListener('click', async () => {
+        try {
+          const ids = Array.from(document.querySelectorAll('.platform-check:checked')).map((el) => el.value);
+          await postJson('/config/platforms', { enabled_platform_ids: ids });
+          showToast('平台配置已保存');
+        } catch (err) { showToast(`保存失败：${err.message}`, false); }
+      });
+      document.getElementById('save-keywords').addEventListener('click', async () => {
+        try {
+          const content = document.getElementById('keywords-content').value;
+          await postJson('/config/keywords', { content });
+          showToast('关键词已保存');
+        } catch (err) { showToast(`保存失败：${err.message}`, false); }
+      });
+      document.getElementById('save-toggles').addEventListener('click', async () => {
+        try {
+          await Promise.all([
+            postJson('/config/schedule/enabled', { enabled: document.getElementById('schedule-enabled').checked }),
+            postJson('/config/rss/enabled', { enabled: document.getElementById('rss-enabled').checked }),
+            postJson('/config/notification/enabled', { enabled: document.getElementById('notification-enabled').checked }),
+          ]);
+          showToast('运行开关已保存');
+        } catch (err) { showToast(`保存失败：${err.message}`, false); }
+      });
+      document.getElementById('run-once').addEventListener('click', async () => {
+        try {
+          const res = await fetch('/crawl/run-once', { method: 'POST' });
+          const data = await res.json();
+          if (!res.ok || !data.ok) throw new Error(data.detail || JSON.stringify(data));
+          showToast('已触发单次抓取');
+        } catch (err) { showToast(`触发失败：${err.message}`, false); }
+      });
+    </script>
+  </body>
+</html>

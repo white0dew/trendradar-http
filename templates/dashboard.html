@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrendRadar Dashboard</title>
+    <link rel="stylesheet" href="/static/dashboard.css" />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav card nav-card">
+        <a class="nav-link active" href="/dashboard">新闻</a>
+        <a class="nav-link" href="/overview">总览</a>
+        <a class="nav-link" href="/settings">配置</a>
+        <a class="nav-link subtle-link" href="/docs" target="_blank" rel="noreferrer">API Docs</a>
+      </nav>
+
+      <header class="hero card compact-hero">
+        <div>
+          <p class="eyebrow">TrendRadar News</p>
+          <h1>新闻列表</h1>
+          <p class="subtle">首页默认只看新闻，先看推荐，再按需切到最新入库。</p>
+        </div>
+        <div class="hero-meta compact-meta">
+          <div><span>默认视图</span><strong class="ok">推荐新闻</strong></div>
+          <div><span>最新数据库</span><strong>{{ db_name or '-' }}</strong></div>
+          <div><span>最新抓取时间</span><strong>{{ newest_time or '-' }}</strong></div>
+        </div>
+      </header>
+
+      <section class="card news-section tabbed-news-section">
+        <div class="section-title">
+          <div>
+            <h2>新闻列表</h2>
+            <span>默认优先看推荐结果，再切最新入库</span>
+          </div>
+          <div class="news-tabs" role="tablist" aria-label="新闻分类切换">
+            <button class="news-tab active" type="button" data-tab-target="recommended-news-panel" aria-selected="true">推荐新闻 <small>{{ recommended_items|length }}</small></button>
+            <button class="news-tab" type="button" data-tab-target="latest-news-panel" aria-selected="false">最新新闻 <small>{{ latest_items|length }}</small></button>
+          </div>
+        </div>
+
+        <div id="recommended-news-panel" class="tab-panel active" role="tabpanel">
+          <div class="panel-meta">按关键词命中 + 热度排序</div>
+          <ul class="news-list recommended-list">
+            {% for item in recommended_items %}
+            <li>
+              <div>
+                <a href="{{ item.url or item.mobile_url or '#' }}" target="_blank" rel="noreferrer">{{ item.title }}</a>
+                <p>{{ item.platform_name }} · 排名 #{{ item.rank if item.rank is not none else '-' }} · 抓取 {{ item.crawl_count }}</p>
+                <div class="chips">
+                  {% for tag in item.matched_tags %}
+                  <span>{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+              <time>{{ item.last_crawl_time or '-' }}</time>
+            </li>
+            {% else %}
+            <li class="empty">暂无推荐结果</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div id="latest-news-panel" class="tab-panel" role="tabpanel" hidden>
+          <div class="panel-meta">最近入库的 {{ latest_items|length }} 条</div>
+          <ul class="news-list">
+            {% for item in latest_items %}
+            <li>
+              <div>
+                <a href="{{ item.url or item.mobile_url or '#' }}" target="_blank" rel="noreferrer">{{ item.title }}</a>
+                <p>{{ item.platform_name }} · 排名 #{{ item.rank if item.rank is not none else '-' }} · 抓取 {{ item.crawl_count }}</p>
+              </div>
+              <time>{{ item.last_crawl_time or '-' }}</time>
+            </li>
+            {% else %}
+            <li class="empty">暂无新闻数据</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const newsTabs = document.querySelectorAll('.news-tab');
+      const newsPanels = document.querySelectorAll('.tab-panel');
+
+      newsTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const targetId = tab.dataset.tabTarget;
+
+          newsTabs.forEach((item) => {
+            const isActive = item === tab;
+            item.classList.toggle('active', isActive);
+            item.setAttribute('aria-selected', isActive ? 'true' : 'false');
+          });
+
+          newsPanels.forEach((panel) => {
+            const isActive = panel.id === targetId;
+            panel.classList.toggle('active', isActive);
+            panel.hidden = !isActive;
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

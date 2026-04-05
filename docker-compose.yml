@@ -1,0 +1,18 @@
+services:
+  trendradar-http:
+    build: .
+    container_name: trendradar-http
+    restart: unless-stopped
+    ports:
+      - "3333:3333"
+    environment:
+      - TREND_DB_PATH=/data/output/news
+      - TREND_HTML_PATH=/data/output/html
+      - TREND_ROOT=/data/trendradar
+      - COMPOSE_BIN=/usr/local/bin/docker-compose
+      - TREND_CONTAINER_NAME=trendradar
+    volumes:
+      - /root/TrendRadar/output:/data/output:ro
+      - /root/TrendRadar:/data/trendradar
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/local/bin/docker-compose:/usr/local/bin/docker-compose:ro

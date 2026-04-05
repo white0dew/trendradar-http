@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrendRadar Overview</title>
+    <link rel="stylesheet" href="/static/dashboard.css" />
+  </head>
+  <body>
+    <main class="page">
+      <nav class="top-nav card nav-card">
+        <a class="nav-link" href="/dashboard">新闻</a>
+        <a class="nav-link active" href="/overview">总览</a>
+        <a class="nav-link" href="/settings">配置</a>
+        <a class="nav-link subtle-link" href="/docs" target="_blank" rel="noreferrer">API Docs</a>
+      </nav>
+
+      <header class="hero card">
+        <div>
+          <p class="eyebrow">TrendRadar Overview</p>
+          <h1>抓取总览</h1>
+          <p class="subtle">统计、平台分布和关键词简报全部挪到这里，首页不再混这些信息。</p>
+        </div>
+        <div class="hero-meta">
+          <div><span>服务状态</span><strong class="{{ 'ok' if health.ok else 'bad' }}">{{ '正常' if health.ok else '异常' }}</strong></div>
+          <div><span>最新数据库</span><strong>{{ db_name or '-' }}</strong></div>
+          <div><span>最新抓取时间</span><strong>{{ newest_time or '-' }}</strong></div>
+        </div>
+      </header>
+
+      <section class="stats-grid">
+        <article class="card stat-card"><span>总新闻数</span><strong>{{ total_news }}</strong></article>
+        <article class="card stat-card"><span>平台数</span><strong>{{ platform_total }}</strong></article>
+        <article class="card stat-card"><span>推荐新闻数</span><strong>{{ recommended_count }}</strong></article>
+        <article class="card stat-card"><span>关键词组命中</span><strong>{{ brief_groups|length }}</strong></article>
+      </section>
+
+      <section class="content-grid">
+        <article class="card">
+          <div class="section-title"><h2>平台统计</h2><span>按抓取条数排序</span></div>
+          <ul class="platform-list">
+            {% for item in top_platforms %}
+            <li><div><strong>{{ item.platform_name }}</strong><span>{{ item.platform_id }}</span></div><b>{{ item.count }}</b></li>
+            {% else %}
+            <li class="empty">暂无平台数据</li>
+            {% endfor %}
+          </ul>
+        </article>
+
+        <article class="card">
+          <div class="section-title"><h2>关键词匹配简报</h2><span>推荐结果聚合</span></div>
+          {% if brief_text %}
+          <pre class="brief-box">{{ brief_text }}</pre>
+          {% else %}
+          <p class="empty">暂无匹配简报</p>
+          {% endif %}
+          <div class="tag-cloud">
+            {% for item in brief_groups %}
+            <span>{{ item.tag }} · {{ item.count }}</span>
+            {% endfor %}
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
